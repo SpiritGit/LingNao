@@ -1,0 +1,29 @@
+services:
+  funasr-runtime:
+    image: registry.cn-hangzhou.aliyuncs.com/funasr_repo/funasr:funasr-runtime-sdk-gpu-0.1.1
+    container_name: lingnao_asr
+    runtime: nvidia
+    tty: true
+    stdin_open: true
+    ports:
+      - "10095:10095"
+    volumes:
+      - ./models:/workspace/models
+      - ./models/hotwords.txt:/workspace/FunASR/runtime/websocket/hotwords.txt
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - LD_LIBRARY_PATH=/usr/local/lib/python3.8/dist-packages/torch/lib:/workspace/FunASR/runtime/onnxruntime-linux-x64-1.14.0/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+    privileged: true
+    restart: always
+    working_dir: /workspace/FunASR/runtime
+    # 改用 bash -c 组合命令：先启动脚本，再用 tail 守住进程
+    command: >
+      bash -c "bash run_server_2pass.sh 
+      --download-model-dir /workspace/models 
+      --vad-dir damo/speech_fsmn_vad_zh-cn-16k-common-onnx 
+      --model-dir damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-onnx 
+      --online-model-dir damo/speech_paraformer-large_asr_nat-zh-cn-16k-common-vocab8404-online-onnx 
+      --punc-dir damo/punc_ct-transformer_zh-cn-common-vad_realtime-vocab272727-onnx 
+      --itn-dir thuduj12/fst_itn_zh 
+      --hotword /workspace/models/hotwords.txt 
+      --certfile 0 && tail -f /dev/null"
